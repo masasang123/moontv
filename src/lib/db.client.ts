@@ -52,6 +52,7 @@ export interface Favorite {
   total_episodes: number;
   save_time: number;
   search_title?: string;
+  origin?: 'vod' | 'live';
 }
 
 // ---- 缓存数据结构 ----

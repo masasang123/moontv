@@ -49,6 +49,17 @@ export interface AdminConfig {
     from: 'config' | 'custom';
     disabled?: boolean;
   }[];
+  // 直播源配置（移植自上游 LunaTV，字段与上游 AdminConfig.LiveConfig 一致）
+  LiveConfig?: {
+    key: string;
+    name: string;
+    url: string; // m3u 地址
+    ua?: string;
+    epg?: string; // 节目单
+    from: 'config' | 'custom';
+    channelNumber?: number;
+    disabled?: boolean;
+  }[];
   SubscriptionConfig?: {
     subscriptionUrl?: string;
     autoUpdate?: boolean;

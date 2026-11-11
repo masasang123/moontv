@@ -13,6 +13,14 @@ export interface ApiSite {
   detail?: string;
 }
 
+// 直播源（config.json 的 lives 字段，结构与上游 LunaTV 一致）
+export interface LiveCfg {
+  name: string;
+  url: string;
+  ua?: string;
+  epg?: string; // 节目单
+}
+
 interface ConfigFileStruct {
   cache_time?: number;
   api_site: {
@@ -23,6 +31,9 @@ interface ConfigFileStruct {
     type: 'movie' | 'tv';
     query: string;
   }[];
+  lives?: {
+    [key: string]: LiveCfg;
+  };
 }
 
 export const API_CONFIG = {
@@ -136,6 +147,58 @@ export function refineConfig(adminConfig: AdminConfig): AdminConfig {
     adminConfig.SiteConfig.SiteInterfaceCacheTime = fileConfig.cache_time;
   }
 
+  return adminConfig;
+}
+
+/**
+ * 把配置文件（config.json）中的 lives 合并进 AdminConfig.LiveConfig。
+ * 语义与上游 LunaTV 的 refineConfig 一致：文件里有的 key 以文件为准
+ * （from='config'），库里已有但文件里没有的标记为 'custom'。
+ * 本分支的 getConfig 有多条初始化路径，统一在 getConfig 出口调用本函数，
+ * 保证任何路径下 LiveConfig 都已按文件种入。
+ */
+export function mergeLivesFromFile(adminConfig: AdminConfig): AdminConfig {
+  let fileConfig: ConfigFileStruct;
+  try {
+    fileConfig = JSON.parse(adminConfig.ConfigFile) as ConfigFileStruct;
+  } catch (e) {
+    fileConfig = {} as ConfigFileStruct;
+  }
+
+  const livesFromFile = Object.entries(fileConfig.lives || []);
+  const currentLives = new Map(
+    (adminConfig.LiveConfig || []).map((l) => [l.key, l])
+  );
+  livesFromFile.forEach(([key, live]) => {
+    const existingLive = currentLives.get(key);
+    if (existingLive) {
+      existingLive.name = live.name;
+      existingLive.url = live.url;
+      existingLive.ua = live.ua;
+      existingLive.epg = live.epg;
+      existingLive.from = 'config';
+    } else {
+      currentLives.set(key, {
+        key,
+        name: live.name,
+        url: live.url,
+        ua: live.ua,
+        epg: live.epg,
+        channelNumber: 0,
+        from: 'config',
+        disabled: false,
+      });
+    }
+  });
+
+  const livesFromFileKeys = new Set(livesFromFile.map(([key]) => key));
+  currentLives.forEach((live) => {
+    if (!livesFromFileKeys.has(live.key)) {
+      live.from = 'custom';
+    }
+  });
+
+  adminConfig.LiveConfig = Array.from(currentLives.values());
   return adminConfig;
 }
 
@@ -439,6 +502,7 @@ export async function getConfig(): Promise<AdminConfig> {
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
   if (storageType === 'localstorage') {
     await initConfig();
+    mergeLivesFromFile(cachedConfig);
     return cachedConfig;
   }
 
@@ -641,6 +705,7 @@ export async function getConfig(): Promise<AdminConfig> {
     await initConfig();
   }
 
+  mergeLivesFromFile(cachedConfig);
   return cachedConfig;
 }
 
@@ -657,6 +722,9 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
   }
   if (!adminConfig.CustomCategories || !Array.isArray(adminConfig.CustomCategories)) {
     adminConfig.CustomCategories = [];
+  }
+  if (!adminConfig.LiveConfig || !Array.isArray(adminConfig.LiveConfig)) {
+    adminConfig.LiveConfig = [];
   }
   if (!adminConfig.SubscriptionConfig) {
     adminConfig.SubscriptionConfig = {};
@@ -709,6 +777,16 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
       return false;
     }
     seenCustomCategoryKeys.add(category.query + category.type);
+    return true;
+  });
+
+  // 直播源去重
+  const seenLiveKeys = new Set<string>();
+  adminConfig.LiveConfig = (adminConfig.LiveConfig || []).filter((live) => {
+    if (seenLiveKeys.has(live.key)) {
+      return false;
+    }
+    seenLiveKeys.add(live.key);
     return true;
   });
 
