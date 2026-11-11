@@ -19,6 +19,8 @@ export interface AdminConfig {
     TVBoxPassword?: string;
     // 播放进度自动保存间隔（秒），用于控制播放记录保存频率
     PlaybackSaveInterval?: number;
+    // 网页直播开关（移植自上游 LunaTV SiteConfig.EnableWebLive；本分支无后台开关 UI，layout 注入时未设置默认按开启处理）
+    EnableWebLive?: boolean;
   };
   UserConfig: {
     AllowRegister: boolean;
