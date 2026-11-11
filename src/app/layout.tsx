@@ -72,6 +72,8 @@ export default async function RootLayout({
     Number(process.env.NEXT_PUBLIC_PLAYBACK_SAVE_INTERVAL) ||
     getDefaultPlaybackSaveInterval(storageType);
   let autoUpdateEnabled = false;
+  // 网页直播开关：上游由管理员在后台 SiteConfig.EnableWebLive 控制，本分支未移植后台开关 UI，未设置时默认开启
+  let enableWebLive = true;
   if (storageType !== 'localstorage') {
     const config = await getConfig();
     siteName = config.SiteConfig.SiteName;
@@ -94,11 +96,13 @@ export default async function RootLayout({
         : Number(process.env.NEXT_PUBLIC_PLAYBACK_SAVE_INTERVAL) ||
           getDefaultPlaybackSaveInterval(storageType);
     autoUpdateEnabled = config.SubscriptionConfig?.autoUpdate === true;
+    enableWebLive = config.SiteConfig.EnableWebLive ?? true;
   }
 
   // 将运行时配置注入到全局 window 对象，供客户端在运行时读取
   const runtimeConfig = {
     STORAGE_TYPE: process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage',
+    ENABLE_WEB_LIVE: enableWebLive,
     ENABLE_REGISTER: enableRegister,
     DOUBAN_PROXY_TYPE: doubanProxyType,
     DOUBAN_PROXY: doubanProxy,
