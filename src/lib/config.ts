@@ -158,11 +158,26 @@ export function refineConfig(adminConfig: AdminConfig): AdminConfig {
  * 保证任何路径下 LiveConfig 都已按文件种入。
  */
 export function mergeLivesFromFile(adminConfig: AdminConfig): AdminConfig {
+  // 文件源头必须是随部署打包的 config.json（即 runtime.ts 生成物，与 initConfig 同源），
+  // 不能读 adminConfig.ConfigFile——那是数据库里存的旧快照，线上快照里没有 lives，
+  // 读它会让 LiveConfig 永远为空（2026-11-11 线上直播页空白的根因）。
   let fileConfig: ConfigFileStruct;
-  try {
-    fileConfig = JSON.parse(adminConfig.ConfigFile) as ConfigFileStruct;
-  } catch (e) {
-    fileConfig = {} as ConfigFileStruct;
+  if (process.env.DOCKER_ENV === 'true') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      const _require = eval('require') as NodeJS.Require;
+      const fs = _require('fs') as typeof import('fs');
+      const path = _require('path') as typeof import('path');
+      const raw = fs.readFileSync(
+        path.join(process.cwd(), 'config.json'),
+        'utf-8'
+      );
+      fileConfig = JSON.parse(raw) as ConfigFileStruct;
+    } catch (e) {
+      fileConfig = runtimeConfig as unknown as ConfigFileStruct;
+    }
+  } else {
+    fileConfig = runtimeConfig as unknown as ConfigFileStruct;
   }
 
   const livesFromFile = Object.entries(fileConfig.lives || []);
