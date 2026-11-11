@@ -9,6 +9,7 @@ import {
   Film,
   History,
   Home,
+  Radio,
   Search,
   Trash2,
   Trophy,
@@ -136,6 +137,7 @@ const TopNav = ({ activePath }: TopNavProps) => {
     { icon: Cat, label: '动漫', href: '/douban?type=anime' },
     { icon: Clover, label: '综艺', href: '/douban?type=show' },
     { icon: Trophy, label: '榜单', href: '/ranking' },
+    { icon: Radio, label: '直播', href: '/live' },
   ];
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

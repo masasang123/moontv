@@ -9,6 +9,7 @@ import {
   Compass,
   Film,
   Home,
+  Radio,
   Search,
   Trophy,
   Tv,
@@ -74,6 +75,11 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
       icon: Trophy,
       label: '榜单',
       href: '/ranking',
+    },
+    {
+      icon: Radio,
+      label: '直播',
+      href: '/live',
     },
   ]);
 
